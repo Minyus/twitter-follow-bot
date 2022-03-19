@@ -10,6 +10,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
+
 
 def read_handles(filename):
     handles = []
@@ -21,26 +25,35 @@ def read_handles(filename):
 
 
 def login(driver, username, password):
-    driver.get('https://twitter.com/login')
+    driver.get("https://twitter.com/i/flow/login")
+    driver.set_window_size(1323, 824)
+    driver.implicitly_wait(5)
+    driver.find_element(By.CSS_SELECTOR, ".r-1wzrnnt").click()
+    driver.find_element(By.NAME, "text").send_keys(username)
+    driver.find_element(By.NAME, "text").send_keys(Keys.ENTER)
+    driver.find_element(By.NAME, "password").send_keys(password)
+    driver.find_element(
+        By.CSS_SELECTOR, ".css-18t94o4 > .css-901oao > .css-901oao > .css-901oao"
+    ).click()
 
-    username_element = driver.find_elements_by_name('session[username_or_email]')[0]
-    username_element.send_keys(username)
-    password_element = driver.find_elements_by_name('session[password]')[0]
-    password_element.send_keys(password)
-    username_element.submit()
-
-    if 'Login on Twitter' in driver.title:
+    if "Login on Twitter" in driver.title:
         return False
     else:
         return True
 
 
 def follow(driver, handle):
-    driver.get('https://twitter.com/' + handle)
+    driver.get("https://twitter.com/" + handle)
     time.sleep(3)
     image = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, '//img[contains(@src, "https://pbs.twimg.com/profile_banners/")]')))
-    user_id = image.get_attribute('src').split('/')[4]
+        EC.presence_of_element_located(
+            (
+                By.XPATH,
+                '//img[contains(@src, "https://pbs.twimg.com/profile_banners/")]',
+            )
+        )
+    )
+    user_id = image.get_attribute("src").split("/")[4]
     try:
         follow = driver.find_element_by_xpath(f'//div[@data-testid="{user_id}-follow"]')
     except NoSuchElementException:
@@ -50,37 +63,39 @@ def follow(driver, handle):
 
 
 def main():
-    filename = input('[?] The filename of the csv: ') or 'input.csv'
+    filename = input("[?] The filename of the csv: ") or "input.csv"
     try:
         handles = read_handles(filename)
     except FileNotFoundError:
-        print('[?] File not found! Try again...')
+        print("[?] File not found! Try again...")
         return
 
     config_file = ConfigParser()
-    config_file.read('config.ini')
-    settings = config_file['SETTINGS']
+    config_file.read("config.ini")
+    settings = config_file["SETTINGS"]
 
     try:
-        username = settings['Username']
+        username = settings["Username"]
     except KeyError:
-        username = input('[?] Twitter Username: ')
+        username = input("[?] Twitter Username: ")
     try:
-        password = settings['Password']
+        password = settings["Password"]
     except KeyError:
-        password = getpass('[?] Twitter Password for {}: '.format(settings['USERNAME']))
+        password = getpass("[?] Twitter Password for {}: ".format(settings["USERNAME"]))
 
-    driver = webdriver.Chrome()
+    service = ChromeService(executable_path=ChromeDriverManager().install())
+
+    driver = webdriver.Chrome(service=service)
     if not login(driver, username, password):
-        print('[*] Could not login to Twitter. Check your credentials.')
+        print("[*] Could not login to Twitter. Check your credentials.")
         return
 
     for handle in handles:
-        print('[*] Following user: {username}... '.format(username=handle), end='')
+        print("[*] Following user: {username}... ".format(username=handle), end="")
         follow(driver, handle)
-        time.sleep(random.randint(int(settings['Mintime']), int(settings['Maxtime'])))
-        print('Done!')
+        time.sleep(random.randint(int(settings["Mintime"]), int(settings["Maxtime"])))
+        print("Done!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
