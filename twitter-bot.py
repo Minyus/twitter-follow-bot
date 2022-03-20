@@ -14,6 +14,8 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.keys import Keys
 
+from util import _get_exception_msg
+
 
 def read_handles(filename):
     handles = []
@@ -43,23 +45,22 @@ def login(driver, username, password):
 
 
 def follow(driver, handle):
-    driver.get("https://twitter.com/" + handle)
-    time.sleep(3)
-    image = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located(
-            (
-                By.XPATH,
-                '//img[contains(@src, "https://pbs.twimg.com/profile_banners/")]',
-            )
-        )
-    )
-    user_id = image.get_attribute("src").split("/")[4]
     try:
-        follow = driver.find_element_by_xpath(f'//div[@data-testid="{user_id}-follow"]')
-    except NoSuchElementException:
+        driver.get("https://twitter.com/" + handle)
+        driver.set_window_size(1324, 825)
+        driver.implicitly_wait(8)
+        # driver.find_element(
+        # By.CSS_SELECTOR,
+        # ".css-1dbjc4n:nth-child(2) > .css-1dbjc4n > .css-18t94o4 > .css-901oao > .css-901oao > .css-901oao",
+        # ).click()
+        # driver.find_element(
+        # By.XPATH,
+        # "//div[@id='react-root']/div/div/div[2]/main/div/div/div/div/div/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div/span/span",
+        # ).click()
+        driver.find_element(By.XPATH, "//div[2]/div/div/div/span/span").click()
+    except Exception:
+        print(_get_exception_msg())
         return
-    else:
-        follow.click()
 
 
 def main():
